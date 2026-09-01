@@ -715,15 +715,6 @@ export const ClientesView: React.FC<{
             >
               {selectedCliente.status === "active" ? "Ativo" : "Inativo"}
             </Badge>
-            {can("clientes.edit") && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => openEdit(selectedCliente)}
-              >
-                Editar cliente
-              </Button>
-            )}
           </div>
         </div>
 
@@ -791,147 +782,212 @@ export const ClientesView: React.FC<{
           </div>
         )}
 
-        {detailTab === "documentos" && (
-          <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <div className="w-full md:max-w-xs">
-                <Select
-                  label="Categoria"
-                  value={documentFilterCategory}
-                  onChange={(event) =>
-                    setDocumentFilterCategory(event.target.value)
-                  }
-                  options={[
-                    { value: "all", label: "Todas as categorias" },
-                    ...DOCUMENT_CATEGORY_OPTIONS.filter(
-                      (option) => option.value,
-                    ).map((option) => ({
-                      value: option.value,
-                      label: option.label,
-                    })),
-                  ]}
-                />
-              </div>
+       {detailTab === "documentos" && (
+  <div className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={exportClienteDocuments}
-                >
-                  Exportar tudo
-                </Button>
-                {can("documentos.create") && (
-                  <form
-                    onSubmit={uploadClientDocument}
-                    className="flex flex-col gap-2 md:flex-row md:items-end"
-                  >
-                    <DocumentFileInput
-                      value={documentFile}
-                      onChange={setDocumentFile}
-                      disabled={isSubmitting}
-                    />
-                    <Select
-                      label="Categoria do arquivo"
-                      value={documentCategory}
-                      onChange={(event) =>
-                        setDocumentCategory(event.target.value)
-                      }
-                      options={DOCUMENT_CATEGORY_OPTIONS}
-                    />
-                    <Button type="submit" size="sm" isLoading={isSubmitting}>
-                      Enviar
-                    </Button>
-                  </form>
-                )}
-              </div>
-            </div>
+    {/* Cabeçalho */}
+    <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+          Documentos
+        </h3>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {documentRows.length ? (
-                documentRows.map((item) => {
-                  const isImage = isImageDocument(item);
-                  return (
-                    <div
-                      key={item.id}
-                      className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/40"
-                    >
-                      {isImage ? (
-                        <button
-                          type="button"
-                          onClick={() => setPreviewDocument(item)}
-                          className="mb-3 block overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-700"
-                        >
-                          <AuthenticatedDocumentImage
-                            url={`/api/v1/documentos/${item.id}/preview`}
-                            alt={item.nomeOriginal}
-                            className="h-32 w-full object-cover transition-transform duration-200 hover:scale-[1.02]"
-                          />
-                        </button>
-                      ) : (
-                        <div className="mb-3 flex h-32 w-full items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white text-slate-400 dark:border-slate-700 dark:bg-slate-900/40">
-                          <span className="text-center text-xs font-semibold uppercase tracking-wide">
-                            {item.tipo || "Arquivo"}
-                          </span>
-                        </div>
-                      )}
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          Arquivos vinculados diretamente a este cliente.
+        </p>
+      </div>
 
-                      <div className="space-y-2">
-                        <div>
-                          <p className="font-semibold text-slate-800 dark:text-slate-100">
-                            {item.nome}
-                          </p>
-                          <p className="text-[11px] text-slate-500">
-                            {item.categoria || "Sem categoria"} ·{" "}
-                            {item.nomeOriginal}
-                          </p>
-                        </div>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={exportClienteDocuments}
+      >
+        Exportar tudo
+      </Button>
+    </div>
 
-                        <div className="flex items-center gap-2">
-                          {isImage && (
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              onClick={() => setPreviewDocument(item)}
-                            >
-                              Visualizar
-                            </Button>
-                          )}
+    {/* Filtros */}
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+      <Select
+        label="Categoria"
+        value={documentFilterCategory}
+        onChange={(event) =>
+          setDocumentFilterCategory(event.target.value)
+        }
+        options={[
+          {
+            value: "all",
+            label: "Todas as categorias",
+          },
+          ...DOCUMENT_CATEGORY_OPTIONS
+            .filter((option) => option.value)
+            .map((option) => ({
+              value: option.value,
+              label: option.label,
+            })),
+        ]}
+      />
+    </div>
 
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => downloadDocument(item)}
-                          >
-                            Baixar
-                          </Button>
+    {/* Upload */}
+    {can("documentos.create") && (
+      <form
+        onSubmit={uploadClientDocument}
+        className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40"
+      >
+        <div className="mb-4">
+          <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            Enviar novo documento
+          </h4>
 
-                          {can("documentos.delete") && (
-                            <Button
-                              variant="danger"
-                              size="sm"
-                              leftIcon={<Trash2 className="h-3.5 w-3.5" />}
-                              onClick={() => {
-                                setDocumentToDelete(item);
-                                setIsDocumentDeleteOpen(true);
-                              }}
-                            >
-                              Excluir
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="py-6 text-center text-xs text-slate-500 md:col-span-2 xl:col-span-3">
-                  Nenhum documento nesta categoria.
-                </p>
-              )}
-            </div>
+          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+            Selecione o arquivo e informe a categoria.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:items-end">
+
+          {/* Arquivo */}
+          <div className="lg:col-span-6">
+            <DocumentFileInput
+              value={documentFile}
+              onChange={setDocumentFile}
+              disabled={isSubmitting}
+            />
           </div>
-        )}
+
+          {/* Categoria */}
+          <div className="lg:col-span-4">
+            <Select
+              label="Categoria do arquivo"
+              value={documentCategory}
+              onChange={(event) =>
+                setDocumentCategory(event.target.value)
+              }
+              options={DOCUMENT_CATEGORY_OPTIONS}
+            />
+          </div>
+
+          {/* Botão */}
+          <div className="lg:col-span-2">
+            <Button
+              type="submit"
+              size="sm"
+              className="w-full"
+              isLoading={isSubmitting}
+            >
+              Enviar
+            </Button>
+          </div>
+
+        </div>
+      </form>
+    )}
+
+    {/* Lista de documentos */}
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {documentRows.length ? (
+        documentRows.map((item) => {
+          const isImage = isImageDocument(item);
+
+          return (
+            <div
+              key={item.id}
+              className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950/40"
+            >
+              {/* Preview */}
+              {isImage ? (
+                <button
+                  type="button"
+                  onClick={() => setPreviewDocument(item)}
+                  className="block w-full overflow-hidden border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                >
+                  <AuthenticatedDocumentImage
+                    url={`/api/v1/documentos/${item.id}/preview`}
+                    alt={item.nomeOriginal}
+                    className="h-44 w-full object-contain transition-transform duration-200 hover:scale-[1.02]"
+                  />
+                </button>
+              ) : (
+                <div className="flex h-44 w-full items-center justify-center border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+                  <span className="text-xs font-bold uppercase text-slate-400">
+                    {item.tipo || "Arquivo"}
+                  </span>
+                </div>
+              )}
+
+              {/* Informações */}
+              <div className="space-y-3 p-4">
+
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
+                    {item.nome}
+                  </p>
+
+                  <p className="mt-1 truncate text-[11px] text-slate-500 dark:text-slate-400">
+                    {item.categoria || "Sem categoria"}
+                  </p>
+
+                  <p className="truncate text-[10px] text-slate-400">
+                    {item.nomeOriginal}
+                  </p>
+                </div>
+
+                {/* Ações */}
+                <div className="flex flex-wrap gap-2">
+
+                  {isImage && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        setPreviewDocument(item)
+                      }
+                    >
+                      Visualizar
+                    </Button>
+                  )}
+
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      downloadDocument(item)
+                    }
+                  >
+                    Baixar
+                  </Button>
+
+                  {can("documentos.delete") && (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      leftIcon={
+                        <Trash2 className="h-3.5 w-3.5" />
+                      }
+                      onClick={() => {
+                        setDocumentToDelete(item);
+                        setIsDocumentDeleteOpen(true);
+                      }}
+                    >
+                      Excluir
+                    </Button>
+                  )}
+
+                </div>
+              </div>
+            </div>
+          );
+        })
+      ) : (
+            <p className="py-8 text-center text-xs text-slate-500 md:col-span-2 xl:col-span-3">
+              Nenhum documento nesta categoria.
+            </p>
+          )}
+        </div>
+
+        </div>
+    )}
 
         {detailTab === "contratos" && (
           <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
