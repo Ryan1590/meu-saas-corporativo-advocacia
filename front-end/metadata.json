@@ -1,0 +1,6 @@
+{
+  "name": "Enterprise SaaS Starter Kit",
+  "description": "Base profissional full-stack com Laravel + Next.js/React, RBAC com Roles e Permissions, controle de acesso por tela, Jetstream/Sanctum auth, audit logs, Design System completo e API REST padronizada.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
