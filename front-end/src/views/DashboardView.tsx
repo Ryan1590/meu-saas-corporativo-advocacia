@@ -36,7 +36,7 @@ export const DashboardView: React.FC<{ onNavigate: (path: string) => void }> = (
     async function loadMetrics() {
       try {
         setIsLoading(true);
-        const res = await fetch('/api/v1/dashboard/metrics');
+        const res = await fetch('/api/v1/infos-user/metrics');
         if (res.ok) {
           const json = await res.json();
           if (json.success) {

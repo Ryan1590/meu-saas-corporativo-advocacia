@@ -43,7 +43,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onNavigate }) => {
 
       success(`Bem-vindo de volta, ${json.data.user.name}!`, 'Autenticado');
       login(json.data.token, json.data.user);
-      onNavigate('/dashboard');
+      onNavigate('/infos-user');
     } catch (err) {
       setErrorMsg('Erro de conexão com o servidor. Tente novamente.');
       toastError('Não foi possível conectar ao backend.', 'Erro de Rede');

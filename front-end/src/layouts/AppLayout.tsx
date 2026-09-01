@@ -69,10 +69,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ currentPath, onNavigate, c
       items: [
         {
           id: 'dashboard',
-          label: 'Dashboard',
+          label: 'Infos User',
           icon: <LayoutDashboard className="w-4 h-4" />,
-          path: '/dashboard',
-          permission: 'dashboard.view',
+          path: '/infos-user',
+          permission: 'infos-user.view',
         },
         {
           id: 'birthdays',
@@ -163,7 +163,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ currentPath, onNavigate, c
 
   const getPageTitle = (path: string) => {
     switch (path) {
-      case '/dashboard': return 'Dashboard';
+      case '/infos-user': return 'Infos User';
       case '/birthdays': return 'Aniversariantes';
       case '/users': return 'Usuários';
       case '/roles': return 'Perfis & Roles';

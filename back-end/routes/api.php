@@ -28,8 +28,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/auth/switch-demo-user', [AuthController::class, 'switchDemoUser']);
         Route::put('/auth/profile', [AuthController::class, 'updateProfile']);
 
-        // Dashboard
-        Route::get('/dashboard/metrics', [DashboardController::class, 'metrics']);
+        // Infos User
+        Route::get('/infos-user/metrics', [DashboardController::class, 'metrics']);
         Route::get('/birthdays', [BirthdayController::class, 'index']);
 
         // Gestão de Usuários

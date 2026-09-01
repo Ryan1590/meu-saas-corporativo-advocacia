@@ -22,7 +22,7 @@ export const ApiPlaygroundView: React.FC = () => {
   const { success, error: toastError } = useToast();
 
   const [method, setMethod] = useState<'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'>('GET');
-  const [endpoint, setEndpoint] = useState('/api/v1/dashboard/metrics');
+  const [endpoint, setEndpoint] = useState('/api/v1/infos-user/metrics');
   const [requestBody, setRequestBody] = useState('{\n  "name": "Novo Usuário",\n  "email": "teste@empresa.com",\n  "password": "Password123!",\n  "roles": ["role-operator"],\n  "status": "active"\n}');
   const [bearerToken, setBearerToken] = useState('1|sanctum_enterprise_token_demo');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +33,7 @@ export const ApiPlaygroundView: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
   const predefinedEndpoints = [
-    { label: 'GET /api/v1/dashboard/metrics', method: 'GET', path: '/api/v1/dashboard/metrics', body: '' },
+    { label: 'GET /api/v1/infos-user/metrics', method: 'GET', path: '/api/v1/infos-user/metrics', body: '' },
     { label: 'GET /api/v1/users', method: 'GET', path: '/api/v1/users?page=1&perPage=5', body: '' },
     { label: 'POST /api/v1/users (Criar Usuário)', method: 'POST', path: '/api/v1/users', body: '{\n  "name": "Carlos Eduardo",\n  "email": "carlos.novo@empresa.com",\n  "password": "Password@2026",\n  "roles": ["role-operator"],\n  "status": "active"\n}' },
     { label: 'GET /api/v1/roles', method: 'GET', path: '/api/v1/roles', body: '' },

@@ -15,8 +15,8 @@ class RbacDatabaseSeeder extends Seeder
     {
         // 1. Cadastrar Permissões
         $permissions = [
-            // Dashboard
-            ['name' => 'dashboard.view', 'label' => 'Visualizar Dashboard', 'module' => 'dashboard'],
+            // Infos User
+            ['name' => 'infos-user.view', 'label' => 'Visualizar Infos User', 'module' => 'infos-user'],
             // Usuários
             ['name' => 'users.view', 'label' => 'Visualizar Usuários', 'module' => 'users'],
             ['name' => 'users.create', 'label' => 'Criar Usuários', 'module' => 'users'],
@@ -73,7 +73,7 @@ class RbacDatabaseSeeder extends Seeder
         );
         $managerRole->permissions()->sync(
             Permission::whereIn('name', [
-                'dashboard.view',
+                'infos-user.view',
                 'users.view',
                 'users.create',
                 'users.edit',
@@ -87,13 +87,13 @@ class RbacDatabaseSeeder extends Seeder
             ['name' => 'operator'],
             [
                 'label' => 'Analista',
-                'description' => 'Acesso operacional a dashboards e relatórios básicos.',
+                'description' => 'Acesso operacional às informações de usuários e relatórios básicos.',
                 'is_system' => false,
             ]
         );
         $operatorRole->permissions()->sync(
             Permission::whereIn('name', [
-                'dashboard.view',
+                'infos-user.view',
                 'users.view',
                 'reports.view',
             ])->pluck('id')

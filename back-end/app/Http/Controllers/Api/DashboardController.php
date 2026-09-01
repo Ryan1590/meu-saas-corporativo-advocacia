@@ -14,7 +14,7 @@ class DashboardController extends Controller
 {
     public function metrics(Request $request): JsonResponse
     {
-        abort_unless($request->user()->hasPermission('dashboard.view'), 403);
+        abort_unless($request->user()->hasPermission('infos-user.view'), 403);
         $totalUsers = User::query()->count();
         $activeUsers = User::query()->where('status', 'active')->count();
         $inactiveUsers = User::query()->where('status', 'inactive')->count();

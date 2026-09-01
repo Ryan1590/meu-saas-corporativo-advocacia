@@ -36,10 +36,10 @@ export const ScreenPermissionsView: React.FC<{ onNavigate: (path: string) => voi
   // Screen specifications matrix
   const screenRules = [
     {
-      screen: 'Dashboard Principal',
-      path: '/dashboard',
-      permission: 'dashboard.view',
-      description: 'Métricas executivas, gráficos de cadastros e feed recente.',
+      screen: 'Infos User',
+      path: '/infos-user',
+      permission: 'infos-user.view',
+      description: 'Métricas, gráficos de cadastros e feed recente de usuários.',
       actions: ['Visualizar KPIs', 'Ver Gráficos'],
     },
     {

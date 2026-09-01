@@ -88,7 +88,7 @@ export const SettingsView: React.FC = () => {
       {
         id: 'tok-1',
         name: 'Mobile App Sanctum Token',
-        abilities: ['users:read', 'dashboard:read'],
+        abilities: ['users:read', 'infos-user:read'],
         lastUsedAt: new Date(Date.now() - 3600000).toISOString(),
         createdAt: '2026-08-01T10:00:00Z',
       },

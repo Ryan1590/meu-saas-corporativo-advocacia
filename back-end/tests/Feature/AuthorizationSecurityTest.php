@@ -18,7 +18,7 @@ class AuthorizationSecurityTest extends TestCase
         $user = User::factory()->create(['status' => 'active']);
         Sanctum::actingAs($user);
 
-        $this->getJson('/api/v1/dashboard/metrics')->assertForbidden();
+        $this->getJson('/api/v1/infos-user/metrics')->assertForbidden();
         $this->getJson('/api/v1/roles')->assertForbidden();
         $this->getJson('/api/v1/permissions')->assertForbidden();
         $this->getJson('/api/v1/logs')->assertForbidden();

@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Route to permission mappings
 export const ROUTE_PERMISSIONS: Record<string, string> = {
-  '/dashboard': 'dashboard.view',
+  '/infos-user': 'infos-user.view',
   '/birthdays': 'birthdays.view',
   '/users': 'users.view',
   '/users/create': 'users.create',

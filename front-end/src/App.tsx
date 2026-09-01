@@ -21,7 +21,7 @@ import { ROUTE_PERMISSIONS } from './context/AuthContext';
 const MainRouter: React.FC = () => {
   const { user, isLoading, canAccessRoute } = useAuth();
   const [currentPath, setCurrentPath] = useState<string>(() => {
-    return window.location.pathname !== '/' ? window.location.pathname : '/dashboard';
+    return window.location.pathname !== '/' ? window.location.pathname : '/infos-user';
   });
 
   const navigate = (path: string) => {
@@ -31,7 +31,7 @@ const MainRouter: React.FC = () => {
 
   useEffect(() => {
     const handlePopState = () => {
-      setCurrentPath(window.location.pathname !== '/' ? window.location.pathname : '/dashboard');
+      setCurrentPath(window.location.pathname !== '/' ? window.location.pathname : '/infos-user');
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -74,13 +74,13 @@ const MainRouter: React.FC = () => {
       return (
         <ForbiddenShield
           requiredPermission={requiredPerm}
-          onGoBack={() => navigate('/dashboard')}
+          onGoBack={() => navigate('/infos-user')}
         />
       );
     }
 
     switch (currentPath) {
-      case '/dashboard':
+      case '/infos-user':
         return <DashboardView onNavigate={navigate} />;
       case '/birthdays':
         return <BirthdaysView />;

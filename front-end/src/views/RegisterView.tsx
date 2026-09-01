@@ -56,7 +56,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onNavigate }) => {
 
       success('Sua conta foi criada com sucesso!', 'Cadastro Concluído');
       login(json.data.token, json.data.user);
-      onNavigate('/dashboard');
+      onNavigate('/infos-user');
     } catch (err) {
       toastError('Falha ao conectar com o servidor.', 'Erro de Rede');
     } finally {

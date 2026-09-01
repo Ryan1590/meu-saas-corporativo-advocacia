@@ -85,7 +85,7 @@ export const RolesPermissionsView: React.FC = () => {
       name: '',
       label: '',
       description: '',
-      permissions: ['dashboard.view'],
+      permissions: ['infos-user.view'],
     });
     setFormErrors({});
     setIsAddModalOpen(true);
