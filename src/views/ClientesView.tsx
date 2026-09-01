@@ -1,7 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AlertCircle,
+  ArrowUpRight,
   Building2,
+  CheckCircle2,
   CircleHelp,
+  Clock,
+  DollarSign,
   Edit2,
   Eye,
   FolderOpen,
@@ -25,7 +30,7 @@ import { Button } from "../components/design-system/Button";
 import { Input, Select, Switch } from "../components/design-system/Input";
 import { Badge } from "../components/design-system/Badge";
 import { ConfirmationDialog } from "../components/design-system/ConfirmationDialog";
-import { Drawer, Modal } from "../components/design-system/Modal";
+import { Modal } from "../components/design-system/Modal";
 import { Tabs } from "../components/design-system/Tabs";
 import { Tooltip } from "../components/design-system/Dropdown";
 import { DocumentFileInput } from "../components/design-system/DocumentFileInput";
@@ -33,6 +38,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { ForbiddenShield } from "./ForbiddenView";
 import {
+  formatBrlDecimal,
   formatCep,
   formatCnpj,
   formatCpf,
@@ -194,7 +200,6 @@ export const ClientesView: React.FC<{
   const [totalItems, setTotalItems] = useState(0);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<Documento | null>(
     null,
@@ -228,6 +233,13 @@ export const ClientesView: React.FC<{
   const [treeDocumentos, setTreeDocumentos] = useState<Documento[]>([]);
   const [treeContratos, setTreeContratos] = useState<Contrato[]>([]);
   const [treeTarefas, setTreeTarefas] = useState<any[]>([]);
+  const [clienteFinanceiro, setClienteFinanceiro] = useState<{
+    contratos: Contrato[];
+    parcelas: Parcela[];
+    totalContratado: number;
+    totalPago: number;
+    totalPendente: number;
+  } | null>(null);
   const requestedCepsRef = useRef(new Set<string>());
 
   const fetchClientes = useCallback(async () => {
@@ -268,8 +280,39 @@ export const ClientesView: React.FC<{
   useEffect(() => {
     fetchClientes();
   }, [fetchClientes]);
+  const openNewContract = async (cliente: Cliente) => {
+    let proximoNumero = "";
+    try {
+      const resp = await fetch("/api/v1/contratos/proximo-numero");
+      const data = await resp.json();
+      if (data.success && data.numero) {
+        proximoNumero = data.numero;
+      }
+    } catch {
+      // fallback
+    }
+
+    setContractForm({
+      processo_id: "",
+      numero: proximoNumero,
+      data_inicio: new Date().toISOString().split("T")[0],
+      valor_total: "",
+      forma_pagamento: "",
+    });
+
+    try {
+      const resp = await fetch(`/api/v1/clientes/${cliente.id}/processos?perPage=100`);
+      const json = await resp.json();
+      setContractProcesses(json.data ?? []);
+    } catch {
+      setContractProcesses([]);
+    }
+
+    setContractOpen(true);
+  };
+
   useEffect(() => {
-    if (!selectedCliente || !(detailClientId || isDrawerOpen)) return;
+    if (!selectedCliente || !detailClientId) return;
     
     // Carrega dados para a visão em Árvore Completa
     Promise.all([
@@ -291,11 +334,23 @@ export const ClientesView: React.FC<{
       .then((response) => response.json())
       .then((json) => {
         if (!json.success) throw new Error();
-        setChildItems(json.data ?? []);
+        if (detailTab === "financeiro") {
+          const finData = json.data || {};
+          setChildItems(finData.parcelas ?? []);
+          setClienteFinanceiro({
+            contratos: finData.contratos ?? [],
+            parcelas: finData.parcelas ?? [],
+            totalContratado: finData.totalContratado ?? 0,
+            totalPago: finData.totalPago ?? 0,
+            totalPendente: finData.totalPendente ?? 0,
+          });
+        } else {
+          setChildItems(json.data ?? []);
+        }
       })
       .catch(() => toastError("Não foi possível carregar os dados vinculados."))
       .finally(() => setChildLoading(false));
-  }, [detailClientId, detailTab, isDrawerOpen, selectedCliente, toastError]);
+  }, [detailClientId, detailTab, selectedCliente, toastError]);
 
   useEffect(() => {
     if (!detailClientId) return;
@@ -433,21 +488,15 @@ export const ClientesView: React.FC<{
     setSelectedCliente(cliente);
     if (onNavigate) {
       onNavigate(`/clientes/${cliente.id}`);
-      return;
     }
-    setIsDrawerOpen(true);
   };
 
   const openClientDocuments = (cliente: Cliente) => {
     setSelectedCliente(cliente);
     setDetailTab("documentos");
-
     if (onNavigate) {
       onNavigate(`/clientes/${cliente.id}`);
-      return;
     }
-
-    setIsDrawerOpen(true);
   };
 
   const openEdit = (cliente: Cliente) => {
@@ -773,17 +822,7 @@ export const ClientesView: React.FC<{
               if (onNavigate) onNavigate("/processos?novo=true");
             }}
             onNewDocumento={() => setDetailTab("documentos")}
-            onNewContrato={() => {
-              setContractForm({
-                processo_id: "",
-                numero: "",
-                data_inicio: "",
-                valor_total: "",
-                forma_pagamento: "",
-              });
-              setContractProcesses(treeProcessos);
-              setContractOpen(true);
-            }}
+            onNewContrato={() => openNewContract(selectedCliente)}
           />
         )}
 
@@ -824,7 +863,28 @@ export const ClientesView: React.FC<{
         )}
 
         {detailTab === "processos" && (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  Processos Jurídicos
+                </h3>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Processos vinculados a este cliente.
+                </p>
+              </div>
+              {can("processos.create") && (
+                <Button
+                  size="sm"
+                  leftIcon={<Plus className="h-4 w-4" />}
+                  onClick={() => {
+                    if (onNavigate) onNavigate(`/processos?novo=true&cliente_id=${selectedCliente.id}`);
+                  }}
+                >
+                  Novo processo
+                </Button>
+              )}
+            </div>
             <ChildList
               loading={childLoading}
               items={childItems as Processo[]}
@@ -1046,7 +1106,26 @@ export const ClientesView: React.FC<{
     )}
 
         {detailTab === "contratos" && (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+            <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  Contratos de Honorários
+                </h3>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Contratos vinculados diretamente a este cliente.
+                </p>
+              </div>
+              {can("contratos.create") && (
+                <Button
+                  size="sm"
+                  leftIcon={<Plus className="h-4 w-4" />}
+                  onClick={() => openNewContract(selectedCliente)}
+                >
+                  Novo contrato
+                </Button>
+              )}
+            </div>
             <ChildList
               loading={childLoading}
               items={childItems as Contrato[]}
@@ -1064,22 +1143,163 @@ export const ClientesView: React.FC<{
         )}
 
         {detailTab === "financeiro" && (
-          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <ChildList
-              loading={childLoading}
-              items={childItems as Parcela[]}
-              empty="Nenhuma parcela vinculada."
-              render={(item) => (
-                <>
-                  <p className="font-semibold">
-                    Parcela {item.numero} · R$ {item.valor}
+          <div className="space-y-5">
+            {/* Cards de Indicadores Financeiros */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-medium text-slate-500">Total Contratado</p>
+                  <span className="rounded-lg bg-slate-100 p-1.5 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    <DollarSign className="h-4 w-4" />
+                  </span>
+                </div>
+                <p className="mt-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                  {formatBrlDecimal(clienteFinanceiro?.totalContratado ?? 0)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-slate-400">
+                  {clienteFinanceiro?.contratos?.length ?? 0} contrato(s) vinculados
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">Total Recebido (Quitado)</p>
+                  <span className="rounded-lg bg-emerald-100 p-1.5 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                    <CheckCircle2 className="h-4 w-4" />
+                  </span>
+                </div>
+                <p className="mt-2 text-lg font-bold text-emerald-700 dark:text-emerald-300">
+                  {formatBrlDecimal(clienteFinanceiro?.totalPago ?? 0)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-emerald-600/80 dark:text-emerald-400/80">
+                  Honorários liquidados
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 dark:border-amber-900/40 dark:bg-amber-950/20">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400">Saldo a Receber</p>
+                  <span className="rounded-lg bg-amber-100 p-1.5 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                    <Clock className="h-4 w-4" />
+                  </span>
+                </div>
+                <p className="mt-2 text-lg font-bold text-amber-700 dark:text-amber-300">
+                  {formatBrlDecimal(clienteFinanceiro?.totalPendente ?? 0)}
+                </p>
+                <p className="mt-0.5 text-[11px] text-amber-600/80 dark:text-amber-400/80">
+                  Parcelas vincendas ou em aberto
+                </p>
+              </div>
+            </div>
+
+            {/* Listagem detalhada das Parcelas */}
+            <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+              <div className="mb-4 flex flex-col gap-2 border-b border-slate-100 pb-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                    Parcelas & Fluxo de Honorários
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Todas as parcelas geradas a partir dos contratos deste cliente.
                   </p>
-                  <p className="text-slate-500">
-                    {item.contrato?.numero || "Contrato"}
+                </div>
+                {can("contratos.create") && (
+                  <Button
+                    size="sm"
+                    leftIcon={<Plus className="h-4 w-4" />}
+                    onClick={() => openNewContract(selectedCliente)}
+                  >
+                    Novo Contrato & Parcelas
+                  </Button>
+                )}
+              </div>
+
+              {childLoading ? (
+                <div className="py-8 text-center text-xs text-slate-500">
+                  Carregando parcelas e movimentações financeiras...
+                </div>
+              ) : (childItems as Parcela[]).length ? (
+                <div className="space-y-2.5">
+                  {(childItems as Parcela[]).map((item) => {
+                    const isPago = item.status === "pago";
+                    const isAtrasado =
+                      item.status === "atrasado" ||
+                      (!isPago && item.dataVencimento && new Date(item.dataVencimento) < new Date());
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`flex flex-col gap-3 rounded-xl border p-3.5 text-xs transition-colors sm:flex-row sm:items-center sm:justify-between ${
+                          isPago
+                            ? "border-emerald-200 bg-emerald-50/20 dark:border-emerald-900/30 dark:bg-emerald-950/10"
+                            : isAtrasado
+                            ? "border-rose-200 bg-rose-50/20 dark:border-rose-900/30 dark:bg-rose-950/10"
+                            : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`mt-0.5 rounded-full p-1.5 ${
+                              isPago
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                                : isAtrasado
+                                ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400"
+                                : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+                            }`}
+                          >
+                            {isPago ? (
+                              <CheckCircle2 className="h-4 w-4" />
+                            ) : isAtrasado ? (
+                              <AlertCircle className="h-4 w-4" />
+                            ) : (
+                              <Clock className="h-4 w-4" />
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100">
+                                Parcela {item.numero} · {item.descricao || "Honorários Jurídicos"}
+                              </p>
+                              <Badge
+                                variant={isPago ? "success" : isAtrasado ? "danger" : "warning"}
+                                size="sm"
+                              >
+                                {isPago ? "Pago" : isAtrasado ? "Em Atraso" : "A Vencer"}
+                              </Badge>
+                            </div>
+                            <p className="mt-0.5 text-slate-500 dark:text-slate-400">
+                              Contrato: {item.contrato?.numero || "CT-Vinculado"} · Vencimento:{" "}
+                              {item.dataVencimento
+                                ? new Date(item.dataVencimento).toLocaleDateString("pt-BR")
+                                : "A definir"}{" "}
+                              {item.formaPagamento ? `· Via ${item.formaPagamento}` : ""}
+                            </p>
+                            {isPago && item.dataPagamento && (
+                              <p className="mt-0.5 text-emerald-600 dark:text-emerald-400">
+                                Quitado em: {new Date(item.dataPagamento).toLocaleDateString("pt-BR")}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3 border-t border-slate-100 pt-2 sm:border-0 sm:pt-0 dark:border-slate-800">
+                          <p className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                            {formatBrlDecimal(item.valor)}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-slate-500">
+                  <p>Nenhuma parcela vinculada a este cliente.</p>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Ao criar um contrato na aba "Contratos de Honorários", as parcelas são geradas automaticamente.
                   </p>
-                </>
+                </div>
               )}
-            />
+            </div>
           </div>
         )}
 
@@ -1219,10 +1439,7 @@ export const ClientesView: React.FC<{
       render: (cliente) => (
         <div className="flex items-center justify-end gap-1">
           <button
-            onClick={() => {
-              setSelectedCliente(cliente);
-              setIsDrawerOpen(true);
-            }}
+            onClick={() => openClienteDetail(cliente)}
             className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200"
             title="Visualizar cliente"
           >
@@ -1571,292 +1788,6 @@ export const ClientesView: React.FC<{
       >
         {renderForm()}
       </Modal>
-      <Drawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-        title="Ficha do Cliente"
-        description="Dados cadastrais e informações de contato"
-        width="lg"
-      >
-        {selectedCliente && (
-          <div className="space-y-6 text-left">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/60">
-              <div className="flex items-center gap-3">
-                <div className="rounded-lg bg-indigo-100 p-2 text-indigo-600 dark:bg-indigo-950/50 dark:text-indigo-400">
-                  {selectedCliente.tipoPessoa === "PJ" ? (
-                    <Building2 className="h-5 w-5" />
-                  ) : (
-                    <UserRound className="h-5 w-5" />
-                  )}
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                    {clientName(selectedCliente)}
-                  </h4>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Badge
-                      variant={
-                        selectedCliente.status === "active"
-                          ? "success"
-                          : "neutral"
-                      }
-                      size="sm"
-                      dot
-                    >
-                      {selectedCliente.status === "active"
-                        ? "Ativo"
-                        : "Inativo"}
-                    </Badge>
-                    <span className="text-[10px] text-slate-400">
-                      {selectedCliente.tipoPessoa} ·{" "}
-                      {documentLabel(selectedCliente) || "Sem documento"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <Tabs
-              activeTab={detailTab}
-              onChange={setDetailTab}
-              tabs={[
-                { id: "arvore", label: "Árvore" },
-                { id: "resumo", label: "Resumo" },
-                { id: "cadastro", label: "Cadastro" },
-                { id: "processos", label: "Processos" },
-                { id: "documentos", label: "Documentos" },
-                { id: "contratos", label: "Contratos" },
-                { id: "financeiro", label: "Financeiro" },
-                { id: "historico", label: "Histórico" },
-              ]}
-            />
-            {detailTab === "arvore" && (
-              <ClienteProcessoTree
-                cliente={selectedCliente}
-                processos={treeProcessos}
-                documentos={treeDocumentos}
-                contratos={treeContratos}
-                tarefas={treeTarefas}
-                onOpenProcesso={(proc) => {
-                  if (onNavigate) onNavigate(`/processos?detailId=${proc.id}`);
-                }}
-                onNewProcesso={() => {
-                  if (onNavigate) onNavigate("/processos?novo=true");
-                }}
-                onNewDocumento={() => setDetailTab("documentos")}
-              />
-            )}
-            {detailTab === "resumo" && (
-              <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
-                {[
-                  ["E-mail", selectedCliente.email],
-                  ["Celular", selectedCliente.celular],
-                  ["Telefone", selectedCliente.telefone],
-                  ["WhatsApp", selectedCliente.whatsapp],
-                  [
-                    "Endereço",
-                    [
-                      selectedCliente.logradouro,
-                      selectedCliente.numero,
-                      selectedCliente.bairro,
-                      selectedCliente.cidade,
-                      selectedCliente.estado,
-                    ]
-                      .filter(Boolean)
-                      .join(", "),
-                  ],
-                  [
-                    "Processos vinculados",
-                    String(selectedCliente.processosCount ?? 0),
-                  ],
-                ].map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="rounded-lg border border-slate-200 p-3 dark:border-slate-800"
-                  >
-                    <span className="block text-[11px] text-slate-400">
-                      {label}
-                    </span>
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                      {value || "Não informado"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {detailTab === "resumo" && selectedCliente.observacoes && (
-              <div>
-                <h5 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-400">
-                  Observações
-                </h5>
-                <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-                  {selectedCliente.observacoes}
-                </p>
-              </div>
-            )}
-            {detailTab === "cadastro" && (
-              <div className="space-y-3 text-xs">
-                <p>
-                  <span className="text-slate-500">E-mail</span>
-                  <br />
-                  {selectedCliente.email || "Não informado"}
-                </p>
-                <p>
-                  <span className="text-slate-500">Telefone</span>
-                  <br />
-                  {selectedCliente.celular ||
-                    selectedCliente.telefone ||
-                    "Não informado"}
-                </p>
-                {can("clientes.edit") && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openEdit(selectedCliente)}
-                  >
-                    Editar cadastro
-                  </Button>
-                )}
-              </div>
-            )}
-            {detailTab === "processos" && (
-              <ChildList
-                loading={childLoading}
-                items={childItems as Processo[]}
-                empty="Nenhum processo vinculado."
-                render={(item) => (
-                  <>
-                    <p className="font-semibold">{item.numeroProcesso}</p>
-                    <p className="text-slate-500">{item.titulo}</p>
-                  </>
-                )}
-              />
-            )}
-            {detailTab === "documentos" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-1 text-xs font-semibold">
-                  Documentos do cliente{" "}
-                  <Tooltip content="Arquivos vinculados diretamente a este cliente.">
-                    <CircleHelp className="h-3.5 w-3.5 text-slate-400" />
-                  </Tooltip>
-                </div>
-                {can("documentos.create") && (
-                  <form
-                    onSubmit={uploadClientDocument}
-                    className="space-y-3 border-b border-slate-200 pb-4 dark:border-slate-800"
-                  >
-                    <DocumentFileInput
-                      value={documentFile}
-                      onChange={setDocumentFile}
-                      disabled={isSubmitting}
-                    />
-                    <Input
-                      label="Categoria"
-                      value={documentCategory}
-                      onChange={(event) =>
-                        setDocumentCategory(event.target.value)
-                      }
-                      required
-                    />
-                    <Button type="submit" size="sm" isLoading={isSubmitting}>
-                      Enviar documento
-                    </Button>
-                  </form>
-                )}
-                <ChildList
-                  loading={childLoading}
-                  items={childItems as Documento[]}
-                  empty="Nenhum documento vinculado."
-                  render={(item) => (
-                    <>
-                      <p className="font-semibold">{item.nome}</p>
-                      <p className="text-slate-500">{item.categoria}</p>
-                    </>
-                  )}
-                />
-              </div>
-            )}
-            {detailTab === "contratos" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-xs font-semibold">
-                    Contratos{" "}
-                    <Tooltip content="Contratos vinculados a este cliente.">
-                      <CircleHelp className="h-3.5 w-3.5 text-slate-400" />
-                    </Tooltip>
-                  </div>
-                  {can("contratos.create") && (
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setContractForm({
-                          processo_id: "",
-                          numero: "",
-                          data_inicio: "",
-                          valor_total: "",
-                          forma_pagamento: "",
-                        });
-                        fetch(
-                          `/api/v1/clientes/${selectedCliente.id}/processos?perPage=100`,
-                        )
-                          .then((response) => response.json())
-                          .then((json) =>
-                            setContractProcesses(json.data ?? []),
-                          );
-                        setContractOpen(true);
-                      }}
-                    >
-                      Novo contrato
-                    </Button>
-                  )}
-                </div>
-                <ChildList
-                  loading={childLoading}
-                  items={childItems as Contrato[]}
-                  empty="Nenhum contrato vinculado."
-                  render={(item) => (
-                    <>
-                      <p className="font-semibold">{item.numero}</p>
-                      <p className="text-slate-500">
-                        {item.descricao || "Sem descrição"}
-                      </p>
-                    </>
-                  )}
-                />
-              </div>
-            )}
-            {detailTab === "financeiro" && (
-              <div className="space-y-3">
-                <div className="flex items-center gap-1 text-xs font-semibold">
-                  Financeiro{" "}
-                  <Tooltip content="Parcelas vinculadas aos contratos deste cliente.">
-                    <CircleHelp className="h-3.5 w-3.5 text-slate-400" />
-                  </Tooltip>
-                </div>
-                <ChildList
-                  loading={childLoading}
-                  items={childItems as Parcela[]}
-                  empty="Nenhuma parcela vinculada."
-                  render={(item) => (
-                    <>
-                      <p className="font-semibold">
-                        Parcela {item.numero} · R$ {item.valor}
-                      </p>
-                      <p className="text-slate-500">
-                        {item.contrato?.numero || "Contrato"}
-                      </p>
-                    </>
-                  )}
-                />
-              </div>
-            )}
-            {detailTab === "historico" && (
-              <p className="py-6 text-center text-xs text-slate-500">
-                Não há histórico disponível para este cliente.
-              </p>
-            )}
-          </div>
-        )}
-      </Drawer>
       <Modal
         isOpen={contractOpen}
         onClose={() => setContractOpen(false)}

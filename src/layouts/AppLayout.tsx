@@ -153,13 +153,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ currentPath, onNavigate, c
           path: '/tarefas',
           permission: 'tarefas.view',
         },
-        {
-          id: 'documentos',
-          label: 'Documentos & Anexos',
-          icon: <FileText className="w-4 h-4" />,
-          path: '/documentos',
-          permission: 'documentos.view',
-        },
       ],
     },
     {

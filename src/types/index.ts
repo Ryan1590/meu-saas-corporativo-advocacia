@@ -263,11 +263,14 @@ export interface Documento {
   categoria: string;
   mimeType: string;
   tamanho: number;
+  tamanhoFormatado?: string;
   descricao?: string | null;
   downloadUrl: string;
   cliente?: Cliente;
   processo?: Processo;
   contrato?: Contrato;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Contrato {

@@ -1,0 +1,6 @@
+{
+  "name": "Meu SaaS Corporativo",
+  "description": "Base profissional full-stack para advocacia e gestão corporativa, RBAC com Roles e Permissions, controle de acesso por tela, audit logs, gestão jurídica e financeira completa.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
