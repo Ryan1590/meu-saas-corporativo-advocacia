@@ -82,7 +82,6 @@ Route::prefix('v1')->group(function () {
         Route::post('/pagamentos/{pagamento}/restore', [PagamentoController::class, 'restore']);
         Route::post('/pagamentos/{pagamento}/cancelar', [PagamentoController::class, 'cancel']);
         Route::apiResource('documentos', DocumentoController::class)->only(['index', 'store', 'show', 'destroy']);
-        Route::get('/documentos/{documento}/download', [DocumentoController::class, 'download']);
         Route::post('/documentos/{documento}/restore', [DocumentoController::class, 'restore']);
         Route::apiResource('tarefas', TarefaController::class);
         Route::post('/tarefas/{tarefa}/restore', [TarefaController::class, 'restore']);
@@ -96,6 +95,9 @@ Route::prefix('v1')->group(function () {
         Route::patch('/notifications/read-all', [NotificationController::class, 'readAll']);
         Route::get('/reports/financeiro/export', [RelatorioController::class, 'financeiro']);
         Route::get('/reports/{tipo}/export', [RelatorioController::class, 'export']);
+
+        Route::get('/documentos/{documento}/preview', [DocumentoController::class, 'preview']);
+        Route::get('/documentos/{documento}/download', [DocumentoController::class, 'download']);
 
         // Perfis e Permissões
         Route::apiResource('roles', RoleController::class);

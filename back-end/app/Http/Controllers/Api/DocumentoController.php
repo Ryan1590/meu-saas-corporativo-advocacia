@@ -46,10 +46,46 @@ class DocumentoController extends Controller
     public function download(Request $request, Documento $documento)
     {
         $this->authorize('download', $documento);
-        abort_unless(Storage::disk('private')->exists($documento->arquivo), 404);
+
+        $disk = Storage::disk('private');
+
+        abort_unless($disk->exists($documento->arquivo), 404);
+
         $this->log($request, 'downloaded', $documento);
 
-        return Storage::disk('private')->download($documento->arquivo, $documento->nome_original);
+        return response()->streamDownload(
+            function () use ($disk, $documento) {
+                echo $disk->get($documento->arquivo);
+            },
+            $documento->nome_original,
+            [
+                'Content-Type' => $documento->mime_type,
+            ]
+        );
+    }
+
+    public function preview(Request $request, Documento $documento)
+    {
+        $this->authorize('view', $documento);
+
+        $disk = Storage::disk('private');
+
+        abort_unless(
+            $disk->exists($documento->arquivo),
+            404
+        );
+
+        return response()->stream(
+            function () use ($disk, $documento) {
+                echo $disk->get($documento->arquivo);
+            },
+            200,
+            [
+                'Content-Type' => $documento->mime_type,
+                'Content-Disposition' => 'inline; filename="' . $documento->nome_original . '"',
+                'Cache-Control' => 'private, max-age=3600',
+            ]
+        );
     }
 
     public function destroy(Request $request, Documento $documento): JsonResponse

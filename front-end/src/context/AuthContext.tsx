@@ -5,12 +5,20 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+
   login: (token: string, user: User) => void;
   logout: () => Promise<void>;
+
+  apiFetch: (
+      input: RequestInfo | URL,
+      init?: RequestInit
+  ) => Promise<Response>;
+
   updateCurrentUser: (user: User) => void;
   can: (permission: string) => boolean;
   hasRole: (roleName: string) => boolean;
   canAccessRoute: (routePath: string) => boolean;
+  
   switchDemoUser: (userId: string) => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -29,7 +37,6 @@ export const ROUTE_PERMISSIONS: Record<string, string> = {
   '/processos': 'processos.view',
   '/tarefas': 'tarefas.view',
   '/agenda': 'agenda.view',
-  '/documentos': 'documentos.view',
   '/contratos': 'contratos.view',
   '/financeiro': 'contratos.view',
   '/dashboard-juridico': 'dashboard-juridico.view',
@@ -48,29 +55,69 @@ export const ROUTE_PERMISSIONS: Record<string, string> = {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('auth_token') || 'demo_token');
+
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('auth_token'));
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchCurrentUser = useCallback(async () => {
     try {
-      setIsLoading(true);
-      const res = await fetch('/api/v1/auth/user');
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success && json.data) {
-          setUser(json.data);
+        setIsLoading(true);
+
+        const currentToken = localStorage.getItem("auth_token");
+
+        const res = await fetch("/api/v1/auth/user", {
+            headers: currentToken
+                ? {
+                      Authorization: `Bearer ${currentToken}`,
+                  }
+                : {},
+        });
+
+        if (res.ok) {
+            const json = await res.json();
+
+            if (json.success && json.data) {
+                setUser(json.data);
+            }
         }
-      }
     } catch (err) {
-      console.error('Failed to fetch auth user:', err);
+        console.error("Failed to fetch auth user:", err);
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
-  }, []);
+}, []);
 
   useEffect(() => {
     fetchCurrentUser();
   }, [fetchCurrentUser]);
+
+
+  const apiFetch = useCallback(
+    async (
+        input: RequestInfo | URL,
+        init: RequestInit = {}
+    ): Promise<Response> => {
+        const headers = new Headers(init.headers);
+
+        if (token) {
+            headers.set('Authorization', `Bearer ${token}`);
+        }
+
+        if (
+            init.body &&
+            !(init.body instanceof FormData) &&
+            !headers.has('Content-Type')
+        ) {
+            headers.set('Content-Type', 'application/json');
+        }
+
+        return fetch(input, {
+            ...init,
+            headers,
+        });
+    },
+    [token]
+);
 
   const login = useCallback((newToken: string, newUser: User) => {
     setToken(newToken);
@@ -153,6 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         logout,
+        apiFetch,
         updateCurrentUser,
         can,
         hasRole,

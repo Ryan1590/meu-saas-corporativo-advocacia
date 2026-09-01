@@ -172,17 +172,10 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ currentPath, onNavigate, c
       ],
     },
     {
-      title: 'Documentos',
-      groupId: 'documentos',
+      title: 'Contratos & Financeiro',
+      groupId: 'contratos-financeiro',
       items: [
-        { id: 'documentos', label: 'Documentos', icon: <FileText className="w-4 h-4" />, path: '/documentos', permission: 'documentos.view' },
         { id: 'contratos', label: 'Contratos', icon: <Landmark className="w-4 h-4" />, path: '/contratos', permission: 'contratos.view' },
-      ],
-    },
-    {
-      title: 'Financeiro',
-      groupId: 'financeiro',
-      items: [
         { id: 'financeiro', label: 'Financeiro', icon: <Landmark className="w-4 h-4" />, path: '/financeiro', permission: 'contratos.view' },
       ],
     },
@@ -245,6 +238,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ currentPath, onNavigate, c
   };
 
   const getPageTitle = (path: string) => {
+    if (path.startsWith('/clientes/')) return 'Cliente';
+
     switch (path) {
       case '/infos-user': return 'Infos User';
       case '/birthdays': return 'Aniversariantes';
@@ -255,7 +250,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ currentPath, onNavigate, c
       case '/processos': return 'Processos';
       case '/tarefas': return 'Tarefas';
       case '/agenda': return 'Agenda';
-      case '/documentos': return 'Documentos';
       case '/contratos': return 'Contratos';
       case '/financeiro': return 'Financeiro';
       case '/dashboard-juridico': return 'Dashboard Jurídico';

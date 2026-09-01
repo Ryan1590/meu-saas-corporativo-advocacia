@@ -14,7 +14,7 @@ import { AdvogadosView } from './views/AdvogadosView';
 import { StatusProcessosView } from './views/StatusProcessosView';
 import { RelatoriosView } from './views/RelatoriosView';
 import { NotificacoesView } from './views/NotificacoesView';
-import { AgendaView, DocumentosView, FinanceiroView, TarefasView } from './views/OperacoesJuridicasView';
+import { AgendaView, FinanceiroView, TarefasView } from './views/OperacoesJuridicasView';
 import { DashboardJuridicoView } from './views/DashboardJuridicoView';
 import { RolesPermissionsView } from './views/RolesPermissionsView';
 import { ScreenPermissionsView } from './views/ScreenPermissionsView';
@@ -32,6 +32,9 @@ const MainRouter: React.FC = () => {
   const [currentPath, setCurrentPath] = useState<string>(() => {
     return window.location.pathname !== '/' ? window.location.pathname : '/infos-user';
   });
+
+  const isClienteDetailRoute = /^\/clientes\//.test(currentPath) && currentPath !== '/clientes';
+  const routePermissionPath = isClienteDetailRoute ? '/clientes' : currentPath;
 
   const navigate = (path: string) => {
     setCurrentPath(path);
@@ -74,8 +77,8 @@ const MainRouter: React.FC = () => {
   }
 
   // Route permission check (Layer 2 of the 5-Layer Security Architecture)
-  const isAllowed = canAccessRoute(currentPath);
-  const requiredPerm = ROUTE_PERMISSIONS[currentPath];
+  const isAllowed = canAccessRoute(routePermissionPath);
+  const requiredPerm = ROUTE_PERMISSIONS[routePermissionPath];
 
   // Render view inside AppLayout
   const renderCurrentView = () => {
@@ -98,7 +101,7 @@ const MainRouter: React.FC = () => {
       case '/users/edit':
         return <UsersView />;
       case '/clientes':
-        return <ClientesView />;
+        return <ClientesView onNavigate={navigate} />;
       case '/advogados':
         return <AdvogadosView />;
       case '/status-processos':
@@ -110,7 +113,7 @@ const MainRouter: React.FC = () => {
       case '/agenda':
         return <AgendaView />;
       case '/documentos':
-        return <DocumentosView />;
+        return <ClientesView />;
       case '/contratos':
       case '/financeiro':
         return <FinanceiroView />;
@@ -138,6 +141,9 @@ const MainRouter: React.FC = () => {
       case '/documentation':
         return <DocumentationView />;
       default:
+        if (isClienteDetailRoute) {
+          return <ClientesView detailClientId={currentPath.split('/').filter(Boolean).at(-1) ?? null} onNavigate={navigate} />;
+        }
         return <DashboardView onNavigate={navigate} />;
     }
   };
