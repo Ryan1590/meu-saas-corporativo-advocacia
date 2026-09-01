@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Building2,
+  CircleHelp,
   Edit2,
   Eye,
   Plus,
@@ -12,7 +13,11 @@ import {
   Cliente,
   ClienteStatus,
   ClienteTipoPessoa,
+  Contrato,
+  Documento,
   PaginatedResponse,
+  Parcela,
+  Processo,
 } from "../types";
 import { Column, Table, Pagination } from "../components/design-system/Table";
 import { Button } from "../components/design-system/Button";
@@ -20,6 +25,9 @@ import { Input, Select, Switch } from "../components/design-system/Input";
 import { Badge } from "../components/design-system/Badge";
 import { ConfirmationDialog } from "../components/design-system/ConfirmationDialog";
 import { Drawer, Modal } from "../components/design-system/Modal";
+import { Tabs } from "../components/design-system/Tabs";
+import { Tooltip } from "../components/design-system/Dropdown";
+import { DocumentFileInput } from "../components/design-system/DocumentFileInput";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { ForbiddenShield } from "./ForbiddenView";
@@ -118,6 +126,8 @@ const clientName = (cliente: Cliente) =>
 const documentLabel = (cliente: Cliente) =>
   cliente.tipoPessoa === "PJ" ? cliente.cnpj : cliente.cpf;
 
+const ChildList = <T extends { id: string }>({ loading, items, empty, render }: { loading: boolean; items: T[]; empty: string; render: (item: T) => React.ReactNode }) => loading ? <p className="py-6 text-center text-xs text-slate-500">Carregando...</p> : items.length ? <div className="space-y-3">{items.map((item) => <div key={item.id} className="border-b border-slate-100 pb-3 text-xs dark:border-slate-800">{render(item)}</div>)}</div> : <p className="py-6 text-center text-xs text-slate-500">{empty}</p>;
+
 export const ClientesView: React.FC = () => {
   const { can } = useAuth();
   const { success, error: toastError } = useToast();
@@ -140,6 +150,14 @@ export const ClientesView: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCepLoading, setIsCepLoading] = useState(false);
+  const [detailTab, setDetailTab] = useState("resumo");
+  const [childItems, setChildItems] = useState<(Processo | Documento | Contrato | Parcela)[]>([]);
+  const [childLoading, setChildLoading] = useState(false);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentCategory, setDocumentCategory] = useState("");
+  const [contractOpen, setContractOpen] = useState(false);
+  const [contractProcesses, setContractProcesses] = useState<Processo[]>([]);
+  const [contractForm, setContractForm] = useState({ processo_id: "", numero: "", data_inicio: "", valor_total: "", forma_pagamento: "" });
   const requestedCepsRef = useRef(new Set<string>());
 
   const fetchClientes = useCallback(async () => {
@@ -180,6 +198,49 @@ export const ClientesView: React.FC = () => {
   useEffect(() => {
     fetchClientes();
   }, [fetchClientes]);
+  useEffect(() => {
+    if (!selectedCliente || !isDrawerOpen || !["processos", "documentos", "contratos", "financeiro"].includes(detailTab)) return;
+    setChildLoading(true);
+    fetch(`/api/v1/clientes/${selectedCliente.id}/${detailTab}?perPage=5`)
+      .then((response) => response.json())
+      .then((json) => {
+        if (!json.success) throw new Error();
+        setChildItems(json.data ?? []);
+      })
+      .catch(() => toastError("Não foi possível carregar os dados vinculados."))
+      .finally(() => setChildLoading(false));
+  }, [detailTab, isDrawerOpen, selectedCliente, toastError]);
+  const uploadClientDocument = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedCliente || !documentFile) return toastError("Selecione um arquivo para envio.");
+    setIsSubmitting(true);
+    try {
+      const data = new FormData();
+      data.append("arquivo", documentFile);
+      data.append("cliente_id", selectedCliente.id);
+      data.append("categoria", documentCategory || "Cliente");
+      const response = await fetch("/api/v1/documentos", { method: "POST", body: data });
+      const json = await response.json();
+      if (!response.ok || !json.success) throw new Error();
+      success(json.message || "Documento enviado com sucesso.");
+      setDocumentFile(null);
+      setDocumentCategory("");
+      setDetailTab("documentos");
+    } catch { toastError("Não foi possível enviar o documento."); } finally { setIsSubmitting(false); }
+  };
+  const saveContract = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedCliente) return;
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/v1/contratos", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...contractForm, cliente_id: selectedCliente.id, valor_total: contractForm.valor_total.replace(/[^\d,]/g, "").replace(",", ".") }) });
+      const json = await response.json();
+      if (!response.ok || !json.success) throw new Error();
+      success(json.message || "Contrato cadastrado com sucesso.");
+      setContractOpen(false);
+      setDetailTab("contratos");
+    } catch { toastError("Não foi possível cadastrar o contrato."); } finally { setIsSubmitting(false); }
+  };
 
   const openCreate = () => {
     setSelectedCliente(null);
@@ -788,7 +849,8 @@ export const ClientesView: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
+            <Tabs activeTab={detailTab} onChange={setDetailTab} tabs={[{ id: "resumo", label: "Resumo" }, { id: "cadastro", label: "Cadastro" }, { id: "processos", label: "Processos" }, { id: "documentos", label: "Documentos" }, { id: "contratos", label: "Contratos" }, { id: "financeiro", label: "Financeiro" }, { id: "historico", label: "Histórico" }]} />
+            {detailTab === "resumo" && <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
               {[
                 ["E-mail", selectedCliente.email],
                 ["Celular", selectedCliente.celular],
@@ -823,8 +885,8 @@ export const ClientesView: React.FC = () => {
                   </span>
                 </div>
               ))}
-            </div>
-            {selectedCliente.observacoes && (
+            </div>}
+            {detailTab === "resumo" && selectedCliente.observacoes && (
               <div>
                 <h5 className="mb-1 text-xs font-bold uppercase tracking-wider text-slate-400">
                   Observações
@@ -834,9 +896,16 @@ export const ClientesView: React.FC = () => {
                 </p>
               </div>
             )}
+            {detailTab === "cadastro" && <div className="space-y-3 text-xs"><p><span className="text-slate-500">E-mail</span><br />{selectedCliente.email || "Não informado"}</p><p><span className="text-slate-500">Telefone</span><br />{selectedCliente.celular || selectedCliente.telefone || "Não informado"}</p>{can("clientes.edit") && <Button size="sm" variant="outline" onClick={() => openEdit(selectedCliente)}>Editar cadastro</Button>}</div>}
+            {detailTab === "processos" && <ChildList loading={childLoading} items={childItems as Processo[]} empty="Nenhum processo vinculado." render={(item) => <><p className="font-semibold">{item.numeroProcesso}</p><p className="text-slate-500">{item.titulo}</p></>} />}
+            {detailTab === "documentos" && <div className="space-y-4"><div className="flex items-center gap-1 text-xs font-semibold">Documentos do cliente <Tooltip content="Arquivos vinculados diretamente a este cliente."><CircleHelp className="h-3.5 w-3.5 text-slate-400" /></Tooltip></div>{can("documentos.create") && <form onSubmit={uploadClientDocument} className="space-y-3 border-b border-slate-200 pb-4 dark:border-slate-800"><DocumentFileInput value={documentFile} onChange={setDocumentFile} disabled={isSubmitting} /><Input label="Categoria" value={documentCategory} onChange={(event) => setDocumentCategory(event.target.value)} required /><Button type="submit" size="sm" isLoading={isSubmitting}>Enviar documento</Button></form>}<ChildList loading={childLoading} items={childItems as Documento[]} empty="Nenhum documento vinculado." render={(item) => <><p className="font-semibold">{item.nome}</p><p className="text-slate-500">{item.categoria}</p></>} /></div>}
+            {detailTab === "contratos" && <div className="space-y-4"><div className="flex items-center justify-between"><div className="flex items-center gap-1 text-xs font-semibold">Contratos <Tooltip content="Contratos vinculados a este cliente."><CircleHelp className="h-3.5 w-3.5 text-slate-400" /></Tooltip></div>{can("contratos.create") && <Button size="sm" onClick={() => { setContractForm({ processo_id: "", numero: "", data_inicio: "", valor_total: "", forma_pagamento: "" }); fetch(`/api/v1/clientes/${selectedCliente.id}/processos?perPage=100`).then((response) => response.json()).then((json) => setContractProcesses(json.data ?? [])); setContractOpen(true); }}>Novo contrato</Button>}</div><ChildList loading={childLoading} items={childItems as Contrato[]} empty="Nenhum contrato vinculado." render={(item) => <><p className="font-semibold">{item.numero}</p><p className="text-slate-500">{item.descricao || "Sem descrição"}</p></>} /></div>}
+            {detailTab === "financeiro" && <div className="space-y-3"><div className="flex items-center gap-1 text-xs font-semibold">Financeiro <Tooltip content="Parcelas vinculadas aos contratos deste cliente."><CircleHelp className="h-3.5 w-3.5 text-slate-400" /></Tooltip></div><ChildList loading={childLoading} items={childItems as Parcela[]} empty="Nenhuma parcela vinculada." render={(item) => <><p className="font-semibold">Parcela {item.numero} · R$ {item.valor}</p><p className="text-slate-500">{item.contrato?.numero || "Contrato"}</p></>} /></div>}
+            {detailTab === "historico" && <p className="py-6 text-center text-xs text-slate-500">Não há histórico disponível para este cliente.</p>}
           </div>
         )}
       </Drawer>
+      <Modal isOpen={contractOpen} onClose={() => setContractOpen(false)} title="Novo contrato" description={selectedCliente ? `Cliente: ${clientName(selectedCliente)}` : undefined} footer={<><Button variant="secondary" onClick={() => setContractOpen(false)}>Cancelar</Button><Button type="submit" form="client-contract-form" isLoading={isSubmitting}>Salvar contrato</Button></>}><form id="client-contract-form" onSubmit={saveContract} className="grid grid-cols-1 gap-4 sm:grid-cols-2"><Select label="Processo" value={contractForm.processo_id} onChange={(event) => setContractForm({ ...contractForm, processo_id: event.target.value })} options={[{ value: "", label: "Sem processo" }, ...contractProcesses.map((item) => ({ value: item.id, label: item.numeroProcesso }))]} /><Input label="Número" value={contractForm.numero} onChange={(event) => setContractForm({ ...contractForm, numero: event.target.value })} required /><Input label="Início" type="date" value={contractForm.data_inicio} onChange={(event) => setContractForm({ ...contractForm, data_inicio: event.target.value })} required /><Input label="Valor total" value={contractForm.valor_total} onChange={(event) => setContractForm({ ...contractForm, valor_total: event.target.value })} required /><Input label="Forma de pagamento" value={contractForm.forma_pagamento} onChange={(event) => setContractForm({ ...contractForm, forma_pagamento: event.target.value })} required /></form></Modal>
       <ConfirmationDialog
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}

@@ -55,6 +55,10 @@ Route::prefix('v1')->group(function () {
         // Gestão Jurídica
         Route::apiResource('clientes', ClienteController::class);
         Route::post('/clientes/{cliente}/restore', [ClienteController::class, 'restore']);
+        Route::get('/clientes/{cliente}/processos', [ClienteController::class, 'processos']);
+        Route::get('/clientes/{cliente}/documentos', [ClienteController::class, 'documentos']);
+        Route::get('/clientes/{cliente}/contratos', [ClienteController::class, 'contratos']);
+        Route::get('/clientes/{cliente}/financeiro', [ClienteController::class, 'financeiro']);
         Route::apiResource('advogados', AdvogadoController::class);
         Route::post('/advogados/{advogado}/restore', [AdvogadoController::class, 'restore']);
         Route::apiResource('status-processos', StatusProcessoController::class)->parameters(['status-processos' => 'status_processo']);
@@ -64,6 +68,9 @@ Route::prefix('v1')->group(function () {
         Route::put('/processos/{processo}/advogados', [ProcessoController::class, 'syncAdvogados']);
         Route::get('/processos/{processo}/responsaveis', [ProcessoController::class, 'responsaveis']);
         Route::put('/processos/{processo}/responsaveis', [ProcessoController::class, 'syncResponsaveis']);
+        Route::get('/processos/{processo}/documentos', [ProcessoController::class, 'documentos']);
+        Route::get('/processos/{processo}/contratos', [ProcessoController::class, 'contratos']);
+        Route::get('/processos/{processo}/financeiro', [ProcessoController::class, 'financeiro']);
         Route::apiResource('processos.movimentacoes', ProcessoMovimentacaoController::class)->parameters(['movimentacoes' => 'movimentacao']);
         Route::apiResource('processos.prazos', ProcessoPrazoController::class);
         Route::post('/processos/{processo}/prazos/{prazo}/restore', [ProcessoPrazoController::class, 'restore']);

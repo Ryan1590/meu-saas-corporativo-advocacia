@@ -6,10 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Processo\StoreProcessoRequest;
 use App\Http\Requests\Processo\SyncProcessoVinculosRequest;
 use App\Http\Requests\Processo\UpdateProcessoRequest;
+use App\Http\Resources\ContratoResource;
+use App\Http\Resources\DocumentoResource;
+use App\Http\Resources\ParcelaResource;
 use App\Http\Resources\ProcessoResource;
 use App\Models\ActivityLog;
 use App\Models\Advogado;
 use App\Models\Cliente;
+use App\Models\Parcela;
 use App\Models\Processo;
 use App\Models\StatusProcesso;
 use App\Models\User;
@@ -73,6 +77,27 @@ class ProcessoController extends Controller
         $this->authorize('view', $processo);
 
         return response()->json(['success' => true, 'data' => $processo->responsaveis()->get()]);
+    }
+
+    public function documentos(Request $request, Processo $processo): JsonResponse
+    {
+        $this->authorize('view', $processo);
+
+        return $this->paginatedResponse($processo->documentos()->where('escritorio_id', $request->user()->escritorio_id)->with(['cliente', 'processo', 'contrato']), DocumentoResource::class, $request);
+    }
+
+    public function contratos(Request $request, Processo $processo): JsonResponse
+    {
+        $this->authorize('view', $processo);
+
+        return $this->paginatedResponse($processo->contratos()->where('escritorio_id', $request->user()->escritorio_id)->with(['cliente', 'processo']), ContratoResource::class, $request);
+    }
+
+    public function financeiro(Request $request, Processo $processo): JsonResponse
+    {
+        $this->authorize('view', $processo);
+
+        return $this->paginatedResponse(Parcela::query()->where('escritorio_id', $request->user()->escritorio_id)->whereHas('contrato', fn ($query) => $query->where('processo_id', $processo->id))->with(['contrato.cliente', 'pagamentos']), ParcelaResource::class, $request);
     }
 
     public function syncResponsaveis(SyncProcessoVinculosRequest $request, Processo $processo): JsonResponse
@@ -176,5 +201,12 @@ class ProcessoController extends Controller
     private function log(User $actor, string $action, Processo $processo, string $description, array $details = []): void
     {
         ActivityLog::create(['user_id' => $actor->id, 'action' => $action, 'module' => 'processos', 'description' => $description, 'ip_address' => request()->ip(), 'user_agent' => request()->userAgent(), 'details' => ['processo_id' => $processo->id, ...$details]]);
+    }
+
+    private function paginatedResponse($query, string $resource, Request $request): JsonResponse
+    {
+        $items = $query->latest()->paginate(max(1, min((int) $request->query('perPage', 5), 100)));
+
+        return response()->json(['success' => true, 'data' => $resource::collection($items->items())->resolve(), 'meta' => ['currentPage' => $items->currentPage(), 'lastPage' => $items->lastPage(), 'perPage' => $items->perPage(), 'total' => $items->total()]]);
     }
 }

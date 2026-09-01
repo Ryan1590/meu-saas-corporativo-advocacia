@@ -11,7 +11,10 @@ import {
 import {
   Advogado,
   Cliente,
+  Contrato,
+  Documento,
   PaginatedResponse,
+  Parcela,
   Processo,
   ProcessoMovimentacao,
   ProcessoPrazo,
@@ -26,6 +29,7 @@ import { ConfirmationDialog } from "../components/design-system/ConfirmationDial
 import { Drawer, Modal } from "../components/design-system/Modal";
 import { Tabs } from "../components/design-system/Tabs";
 import { Tooltip } from "../components/design-system/Dropdown";
+import { DocumentFileInput } from "../components/design-system/DocumentFileInput";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { ForbiddenShield } from "./ForbiddenView";
@@ -240,6 +244,12 @@ export const ProcessosView: React.FC = () => {
     [],
   );
   const [prazos, setPrazos] = useState<ProcessoPrazo[]>([]);
+  const [documentos, setDocumentos] = useState<Documento[]>([]);
+  const [contratos, setContratos] = useState<Contrato[]>([]);
+  const [parcelas, setParcelas] = useState<Parcela[]>([]);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentName, setDocumentName] = useState("");
+  const [documentCategory, setDocumentCategory] = useState("");
 
   const loadProcessos = useCallback(async () => {
     try {
@@ -319,6 +329,46 @@ export const ProcessosView: React.FC = () => {
       setDrawerOpen(true);
     } catch {
       toast.error("Não foi possível carregar os detalhes do processo.", "Erro");
+    }
+  };
+  useEffect(() => {
+    if (!selected || !drawerOpen || !["documentos", "contratos", "financeiro"].includes(tab)) return;
+
+    fetch(`/api/v1/processos/${selected.id}/${tab}?perPage=5`)
+      .then((response) => response.json())
+      .then((json) => {
+        if (!json.success) throw new Error();
+        if (tab === "documentos") setDocumentos(json.data ?? []);
+        if (tab === "contratos") setContratos(json.data ?? []);
+        if (tab === "financeiro") setParcelas(json.data ?? []);
+      })
+      .catch(() => toast.error("Não foi possível carregar os dados vinculados."));
+  }, [drawerOpen, selected, tab, toast]);
+  const uploadDocument = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selected || !documentFile) return toast.error("Selecione um arquivo para envio.");
+
+    setSubmitting(true);
+    try {
+      const data = new FormData();
+      data.append("arquivo", documentFile);
+      data.append("processo_id", selected.id);
+      if (documentName) data.append("nome", documentName);
+      if (documentCategory) data.append("categoria", documentCategory);
+      const response = await fetch("/api/v1/documentos", { method: "POST", body: data });
+      const json = await response.json();
+      if (!response.ok || !json.success) throw new Error();
+      toast.success(json.message || "Documento enviado com sucesso.");
+      setDocumentFile(null);
+      setDocumentName("");
+      setDocumentCategory("");
+      const documents = await fetch(`/api/v1/processos/${selected.id}/documentos?perPage=5`);
+      const documentsJson = await documents.json();
+      setDocumentos(documentsJson.data ?? []);
+    } catch {
+      toast.error("Não foi possível enviar o documento.");
+    } finally {
+      setSubmitting(false);
     }
   };
   const openForm = async (processo?: Processo) => {
@@ -739,8 +789,13 @@ export const ProcessosView: React.FC = () => {
         <form
           id="processo-form"
           onSubmit={submit}
-          className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+          className="space-y-6"
         >
+          <section className="border-b border-slate-200 pb-5 dark:border-slate-800">
+            <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Vínculo do processo
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
             label="Número CNJ"
             value={form.numero_processo}
@@ -771,6 +826,15 @@ export const ProcessosView: React.FC = () => {
             ]}
             required
           />
+          {linkControls("advogados", advogados, "Advogados vinculados", "principal")}
+          {linkControls("responsaveis", users, "Responsáveis vinculados", "principal")}
+            </div>
+          </section>
+          <section className="border-b border-slate-200 pb-5 dark:border-slate-800">
+            <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Identificação judicial
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Select
             label="Status"
             value={form.status_id}
@@ -816,6 +880,13 @@ export const ProcessosView: React.FC = () => {
             ]}
             disabled={!form.comarca}
           />
+            </div>
+          </section>
+          <section className="border-b border-slate-200 pb-5 dark:border-slate-800">
+            <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Classificação
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Select
             label="Área jurídica"
             value={form.area_juridica}
@@ -840,6 +911,13 @@ export const ProcessosView: React.FC = () => {
             value={form.assunto}
             onChange={(event) => setField("assunto", event.target.value)}
           />
+            </div>
+          </section>
+          <section>
+            <h3 className="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Datas e valores
+            </h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="relative w-full space-y-1.5 text-left">
             <div className="flex items-center gap-1">
               <label
@@ -901,18 +979,8 @@ export const ProcessosView: React.FC = () => {
               setField("valor_honorarios", event.target.value)
             }
           />
-          {linkControls(
-            "advogados",
-            advogados,
-            "Advogados vinculados",
-            "principal",
-          )}
-          {linkControls(
-            "responsaveis",
-            users,
-            "Responsáveis vinculados",
-            "principal",
-          )}
+            </div>
+          </section>
         </form>
       </Modal>
       <Drawer
@@ -929,6 +997,9 @@ export const ProcessosView: React.FC = () => {
             { id: "resumo", label: "Resumo" },
             { id: "movimentacoes", label: "Movimentações" },
             { id: "prazos", label: "Prazos" },
+            { id: "documentos", label: "Documentos" },
+            { id: "contratos", label: "Contratos" },
+            { id: "financeiro", label: "Financeiro" },
           ]}
         />
         {selected && (
@@ -1053,6 +1124,23 @@ export const ProcessosView: React.FC = () => {
                 )}
               </div>
             )}
+            {tab === "documentos" && (
+              <div className="space-y-4">
+                {can("documentos.create") && (
+                  <form onSubmit={uploadDocument} className="space-y-3 border-b border-slate-200 pb-4 dark:border-slate-800">
+                    <DocumentFileInput value={documentFile} onChange={setDocumentFile} disabled={submitting} />
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <Input label="Nome" value={documentName} onChange={(event) => setDocumentName(event.target.value)} />
+                      <Input label="Categoria" value={documentCategory} onChange={(event) => setDocumentCategory(event.target.value)} required />
+                    </div>
+                    <Button type="submit" size="sm" isLoading={submitting}>Enviar documento</Button>
+                  </form>
+                )}
+                {documentos.length ? documentos.map((item) => <div key={item.id} className="border-b border-slate-100 pb-3 text-xs dark:border-slate-800"><p className="font-semibold">{item.nome}</p><p className="text-slate-500">{item.categoria} · {item.nomeOriginal}</p></div>) : <p className="py-6 text-center text-xs text-slate-500">Nenhum documento vinculado.</p>}
+              </div>
+            )}
+            {tab === "contratos" && (contratos.length ? <div className="space-y-3">{contratos.map((item) => <div key={item.id} className="flex justify-between border-b border-slate-100 pb-3 text-xs dark:border-slate-800"><div><p className="font-semibold">{item.numero}</p><p className="text-slate-500">{item.descricao || "Sem descrição"}</p></div><span>{formatBrlDecimal(item.valorTotal)}</span></div>)}</div> : <p className="py-6 text-center text-xs text-slate-500">Nenhum contrato vinculado.</p>)}
+            {tab === "financeiro" && (parcelas.length ? <div className="space-y-3"><p className="text-xs text-slate-500">Total das parcelas exibidas: <strong className="text-slate-800 dark:text-slate-100">{formatBrlDecimal(parcelas.reduce((totalValue, item) => totalValue + Number(item.valor), 0))}</strong></p>{parcelas.map((item) => <div key={item.id} className="flex justify-between border-b border-slate-100 pb-3 text-xs dark:border-slate-800"><span>Parcela {item.numero} · {item.contrato?.numero || "Contrato"}</span><span>{formatBrlDecimal(item.valor)}</span></div>)}</div> : <p className="py-6 text-center text-xs text-slate-500">Nenhuma parcela vinculada.</p>)}
           </div>
         )}
       </Drawer>

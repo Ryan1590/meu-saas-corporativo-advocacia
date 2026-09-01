@@ -6,7 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Cliente\StoreClienteRequest;
 use App\Http\Requests\Cliente\UpdateClienteRequest;
 use App\Http\Resources\ClienteResource;
+use App\Http\Resources\ContratoResource;
+use App\Http\Resources\DocumentoResource;
+use App\Http\Resources\ParcelaResource;
+use App\Http\Resources\ProcessoResource;
 use App\Models\Cliente;
+use App\Models\Parcela;
 use App\Services\ClienteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,6 +42,34 @@ class ClienteController extends Controller
         return new ClienteResource($cliente->loadCount('processos'));
     }
 
+    public function processos(Request $request, Cliente $cliente): JsonResponse
+    {
+        $this->authorize('view', $cliente);
+
+        return $this->paginatedResponse($cliente->processos()->where('escritorio_id', $request->user()->escritorio_id)->with(['cliente', 'status']), ProcessoResource::class, $request);
+    }
+
+    public function documentos(Request $request, Cliente $cliente): JsonResponse
+    {
+        $this->authorize('view', $cliente);
+
+        return $this->paginatedResponse($cliente->documentos()->where('escritorio_id', $request->user()->escritorio_id)->with(['cliente', 'processo', 'contrato']), DocumentoResource::class, $request);
+    }
+
+    public function contratos(Request $request, Cliente $cliente): JsonResponse
+    {
+        $this->authorize('view', $cliente);
+
+        return $this->paginatedResponse($cliente->contratos()->where('escritorio_id', $request->user()->escritorio_id)->with(['cliente', 'processo']), ContratoResource::class, $request);
+    }
+
+    public function financeiro(Request $request, Cliente $cliente): JsonResponse
+    {
+        $this->authorize('view', $cliente);
+
+        return $this->paginatedResponse(Parcela::query()->where('escritorio_id', $request->user()->escritorio_id)->whereHas('contrato', fn ($query) => $query->where('cliente_id', $cliente->id))->with(['contrato.cliente', 'pagamentos']), ParcelaResource::class, $request);
+    }
+
     public function update(UpdateClienteRequest $request, Cliente $cliente): JsonResponse
     {
         $cliente = $this->clienteService->updateCliente($cliente, $request->validated(), $request->user());
@@ -59,5 +92,12 @@ class ClienteController extends Controller
         $model = $this->clienteService->restoreCliente($model, $request->user());
 
         return (new ClienteResource($model))->additional(['success' => true, 'message' => 'Cliente restaurado com sucesso.'])->response();
+    }
+
+    private function paginatedResponse($query, string $resource, Request $request): JsonResponse
+    {
+        $items = $query->latest()->paginate(max(1, min((int) $request->query('perPage', 5), 100)));
+
+        return response()->json(['success' => true, 'data' => $resource::collection($items->items())->resolve(), 'meta' => ['currentPage' => $items->currentPage(), 'lastPage' => $items->lastPage(), 'perPage' => $items->perPage(), 'total' => $items->total()]]);
     }
 }
