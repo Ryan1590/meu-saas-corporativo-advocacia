@@ -4,6 +4,7 @@ import {
   CircleHelp,
   Edit2,
   Eye,
+  FolderOpen,
   Plus,
   Search,
   Trash2,
@@ -422,6 +423,19 @@ export const ClientesView: React.FC<{
     }
     setIsDrawerOpen(true);
   };
+
+  const openClientDocuments = (cliente: Cliente) => {
+    setSelectedCliente(cliente);
+    setDetailTab("documentos");
+
+    if (onNavigate) {
+      onNavigate(`/clientes/${cliente.id}`);
+      return;
+    }
+
+    setIsDrawerOpen(true);
+  };
+
   const openEdit = (cliente: Cliente) => {
     setSelectedCliente(cliente);
     setFormData({
@@ -971,9 +985,8 @@ export const ClientesView: React.FC<{
                       }}
                     >
                       Excluir
-                    </Button>
+                    </Button>  
                   )}
-
                 </div>
               </div>
             </div>
@@ -1193,6 +1206,18 @@ export const ClientesView: React.FC<{
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
+
+          <button
+            onClick={(event) => {
+              event.stopPropagation();
+              openClientDocuments(cliente);
+            }}
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-950/50 dark:hover:text-amber-400"
+            title="Documentos do cliente"
+            aria-label={`Documentos de ${clientName(cliente)}`}
+          >
+            <FolderOpen className="h-3.5 w-3.5" />
+          </button>
         </div>
       ),
     },
