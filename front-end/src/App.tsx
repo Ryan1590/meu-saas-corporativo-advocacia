@@ -8,9 +8,18 @@ import { RegisterView, ForgotPasswordView, ResetPasswordView } from './views/Reg
 import { DashboardView } from './views/DashboardView';
 import { BirthdaysView } from './views/BirthdaysView';
 import { UsersView } from './views/UsersView';
+import { ClientesView } from './views/ClientesView';
+import { ProcessosView } from './views/ProcessosView';
+import { AdvogadosView } from './views/AdvogadosView';
+import { StatusProcessosView } from './views/StatusProcessosView';
+import { RelatoriosView } from './views/RelatoriosView';
+import { NotificacoesView } from './views/NotificacoesView';
+import { AgendaView, DocumentosView, FinanceiroView, TarefasView } from './views/OperacoesJuridicasView';
+import { DashboardJuridicoView } from './views/DashboardJuridicoView';
 import { RolesPermissionsView } from './views/RolesPermissionsView';
 import { ScreenPermissionsView } from './views/ScreenPermissionsView';
 import { AuditLogsView } from './views/AuditLogsView';
+import { EscritorioView } from './views/EscritorioView';
 import { SettingsView } from './views/SettingsView';
 import { ApiPlaygroundView } from './views/ApiPlaygroundView';
 import { DesignSystemView } from './views/DesignSystemView';
@@ -88,6 +97,29 @@ const MainRouter: React.FC = () => {
       case '/users/create':
       case '/users/edit':
         return <UsersView />;
+      case '/clientes':
+        return <ClientesView />;
+      case '/advogados':
+        return <AdvogadosView />;
+      case '/status-processos':
+        return <StatusProcessosView />;
+      case '/processos':
+        return <ProcessosView />;
+      case '/tarefas':
+        return <TarefasView />;
+      case '/agenda':
+        return <AgendaView />;
+      case '/documentos':
+        return <DocumentosView />;
+      case '/contratos':
+      case '/financeiro':
+        return <FinanceiroView />;
+      case '/dashboard-juridico':
+        return <DashboardJuridicoView />;
+      case '/reports':
+        return <RelatoriosView />;
+      case '/notifications':
+        return <NotificacoesView />;
       case '/roles':
       case '/permissions':
         return <RolesPermissionsView />;
@@ -95,6 +127,8 @@ const MainRouter: React.FC = () => {
         return <ScreenPermissionsView onNavigate={navigate} />;
       case '/logs':
         return <AuditLogsView />;
+      case '/escritorio':
+        return <EscritorioView />;
       case '/settings':
         return <SettingsView />;
       case '/api-playground':

@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { formatBrlInput } from '../../utils/formatters';
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -22,11 +23,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       id,
       className = '',
       disabled,
+      type,
+      onChange,
+      inputMode,
       ...props
     },
     ref
   ) => {
     const inputId = id || (label ? label.toLowerCase().replace(/\s+/g, '-') : undefined);
+    const isCurrencyInput = /valor|honorários/i.test(label ?? '');
 
     return (
       <div className="w-full space-y-1.5 text-left">
@@ -50,6 +55,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
+            type={isCurrencyInput ? 'text' : type}
+            inputMode={isCurrencyInput ? 'numeric' : inputMode}
             disabled={disabled}
             aria-invalid={!!error}
             aria-describedby={error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
@@ -65,6 +72,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed dark:disabled:bg-slate-800/60 dark:disabled:text-slate-600
               ${className}
             `}
+            onChange={(event) => {
+              if (isCurrencyInput) event.currentTarget.value = formatBrlInput(event.currentTarget.value);
+              onChange?.(event);
+            }}
             {...props}
           />
 

@@ -23,6 +23,16 @@ import {
   Search,
   Activity,
   Cake,
+  ContactRound,
+  BriefcaseBusiness,
+  Scale,
+  CalendarDays,
+  ListTodo,
+  Landmark,
+  Bell,
+  CircleDot,
+  FileSpreadsheet,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -119,6 +129,79 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ currentPath, onNavigate, c
       ],
     },
     {
+      title: 'Dashboard Jurídico',
+      groupId: 'dashboard-juridico',
+      items: [
+        {
+          id: 'dashboard-juridico',
+          label: 'Dashboard Jurídico',
+          icon: <Scale className="w-4 h-4" />,
+          path: '/dashboard-juridico',
+          permission: 'dashboard-juridico.view',
+        },
+        { id: 'notifications', label: 'Notificações', icon: <Bell className="w-4 h-4" />, path: '/notifications', permission: 'notifications.view' },
+      ],
+    },
+    {
+      title: 'Gestão',
+      groupId: 'gestao',
+      items: [
+        {
+          id: 'clientes',
+          label: 'Clientes',
+          icon: <ContactRound className="w-4 h-4" />,
+          path: '/clientes',
+          permission: 'clientes.view',
+        },
+        {
+          id: 'processos',
+          label: 'Processos',
+          icon: <BriefcaseBusiness className="w-4 h-4" />,
+          path: '/processos',
+          permission: 'processos.view',
+        },
+        { id: 'advogados', label: 'Advogados', icon: <Users className="w-4 h-4" />, path: '/advogados', permission: 'advogados.view' },
+      ],
+    },
+    {
+      title: 'Acompanhamento',
+      groupId: 'acompanhamento',
+      items: [
+        { id: 'tarefas', label: 'Tarefas', icon: <ListTodo className="w-4 h-4" />, path: '/tarefas', permission: 'tarefas.view' },
+        { id: 'agenda', label: 'Agenda', icon: <CalendarDays className="w-4 h-4" />, path: '/agenda', permission: 'agenda.view' },
+      ],
+    },
+    {
+      title: 'Documentos',
+      groupId: 'documentos',
+      items: [
+        { id: 'documentos', label: 'Documentos', icon: <FileText className="w-4 h-4" />, path: '/documentos', permission: 'documentos.view' },
+        { id: 'contratos', label: 'Contratos', icon: <Landmark className="w-4 h-4" />, path: '/contratos', permission: 'contratos.view' },
+      ],
+    },
+    {
+      title: 'Financeiro',
+      groupId: 'financeiro',
+      items: [
+        { id: 'financeiro', label: 'Financeiro', icon: <Landmark className="w-4 h-4" />, path: '/financeiro', permission: 'contratos.view' },
+      ],
+    },
+    {
+      title: 'Relatórios',
+      groupId: 'relatorios',
+      items: [
+        { id: 'reports', label: 'Exportar relatórios', icon: <FileSpreadsheet className="w-4 h-4" />, path: '/reports', permission: 'reports.view' },
+      ],
+    },
+    {
+      title: 'Configurações',
+      groupId: 'configuracoes-juridicas',
+      items: [
+        { id: 'escritorio', label: 'Escritório', icon: <Building2 className="w-4 h-4" />, path: '/escritorio', permission: 'escritorios.view' },
+        { id: 'status-processos', label: 'Status de processos', icon: <CircleDot className="w-4 h-4" />, path: '/status-processos', permission: 'status-processos.view' },
+      ],
+    },
+    {
       title: 'Configurações & Dev',
       groupId: 'ferramentas',
       items: [
@@ -166,9 +249,22 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ currentPath, onNavigate, c
       case '/infos-user': return 'Infos User';
       case '/birthdays': return 'Aniversariantes';
       case '/users': return 'Usuários';
+      case '/clientes': return 'Clientes';
+      case '/advogados': return 'Advogados';
+      case '/status-processos': return 'Status de Processos';
+      case '/processos': return 'Processos';
+      case '/tarefas': return 'Tarefas';
+      case '/agenda': return 'Agenda';
+      case '/documentos': return 'Documentos';
+      case '/contratos': return 'Contratos';
+      case '/financeiro': return 'Financeiro';
+      case '/dashboard-juridico': return 'Dashboard Jurídico';
+      case '/reports': return 'Relatórios';
+      case '/notifications': return 'Notificações';
       case '/roles': return 'Perfis & Roles';
       case '/screen-permissions': return 'Acesso por Tela';
       case '/logs': return 'Logs de Auditoria';
+      case '/escritorio': return 'Escritório';
       case '/settings': return 'Configurações do Sistema';
       case '/api-playground': return 'API Playground';
       case '/design-system': return 'Design System';

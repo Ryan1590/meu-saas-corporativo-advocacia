@@ -12,6 +12,14 @@ class UpdateAdvogadoRequest extends FormRequest
         return $this->user()->can('update', $this->route('advogado'));
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'cpf' => $this->filled('cpf') ? preg_replace('/\D/', '', (string) $this->input('cpf')) : null,
+            'oab_numero' => $this->filled('oab_numero') ? preg_replace('/\D/', '', (string) $this->input('oab_numero')) : null,
+        ]);
+    }
+
     public function rules(): array
     {
         return [
@@ -26,6 +34,16 @@ class UpdateAdvogadoRequest extends FormRequest
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'observacoes' => ['nullable', 'string'],
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'cpf.digits' => 'O CPF deve conter 11 dígitos.',
+            'oab_numero.required' => 'O número da OAB é obrigatório.',
+            'oab_uf.required' => 'Selecione a UF da OAB.',
+            'oab_uf.size' => 'Selecione uma UF válida para a OAB.',
         ];
     }
 }
