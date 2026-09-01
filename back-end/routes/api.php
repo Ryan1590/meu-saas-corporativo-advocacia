@@ -1,12 +1,27 @@
 <?php
 
 use App\Http\Controllers\Api\ActivityLogController;
+use App\Http\Controllers\Api\AdvogadoController;
+use App\Http\Controllers\Api\AgendaEventoController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BirthdayController;
+use App\Http\Controllers\Api\ClienteController;
+use App\Http\Controllers\Api\ContratoController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DocumentoController;
+use App\Http\Controllers\Api\EscritorioController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PagamentoController;
+use App\Http\Controllers\Api\ParcelaController;
 use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\ProcessoController;
+use App\Http\Controllers\Api\ProcessoMovimentacaoController;
+use App\Http\Controllers\Api\ProcessoPrazoController;
+use App\Http\Controllers\Api\RelatorioController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\StatusProcessoController;
+use App\Http\Controllers\Api\TarefaController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +51,44 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::patch('/users/{user}/status', [UserController::class, 'updateStatus']);
         Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword']);
+
+        // Gestão Jurídica
+        Route::apiResource('clientes', ClienteController::class);
+        Route::post('/clientes/{cliente}/restore', [ClienteController::class, 'restore']);
+        Route::apiResource('advogados', AdvogadoController::class);
+        Route::post('/advogados/{advogado}/restore', [AdvogadoController::class, 'restore']);
+        Route::apiResource('status-processos', StatusProcessoController::class)->parameters(['status-processos' => 'status_processo']);
+        Route::apiResource('processos', ProcessoController::class);
+        Route::post('/processos/{processo}/restore', [ProcessoController::class, 'restore']);
+        Route::get('/processos/{processo}/advogados', [ProcessoController::class, 'advogados']);
+        Route::put('/processos/{processo}/advogados', [ProcessoController::class, 'syncAdvogados']);
+        Route::get('/processos/{processo}/responsaveis', [ProcessoController::class, 'responsaveis']);
+        Route::put('/processos/{processo}/responsaveis', [ProcessoController::class, 'syncResponsaveis']);
+        Route::apiResource('processos.movimentacoes', ProcessoMovimentacaoController::class)->parameters(['movimentacoes' => 'movimentacao']);
+        Route::apiResource('processos.prazos', ProcessoPrazoController::class);
+        Route::post('/processos/{processo}/prazos/{prazo}/restore', [ProcessoPrazoController::class, 'restore']);
+        Route::apiResource('contratos', ContratoController::class);
+        Route::post('/contratos/{contrato}/restore', [ContratoController::class, 'restore']);
+        Route::apiResource('parcelas', ParcelaController::class);
+        Route::post('/parcelas/{parcela}/restore', [ParcelaController::class, 'restore']);
+        Route::apiResource('pagamentos', PagamentoController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+        Route::post('/pagamentos/{pagamento}/restore', [PagamentoController::class, 'restore']);
+        Route::post('/pagamentos/{pagamento}/cancelar', [PagamentoController::class, 'cancel']);
+        Route::apiResource('documentos', DocumentoController::class)->only(['index', 'store', 'show', 'destroy']);
+        Route::get('/documentos/{documento}/download', [DocumentoController::class, 'download']);
+        Route::post('/documentos/{documento}/restore', [DocumentoController::class, 'restore']);
+        Route::apiResource('tarefas', TarefaController::class);
+        Route::post('/tarefas/{tarefa}/restore', [TarefaController::class, 'restore']);
+        Route::apiResource('agenda-eventos', AgendaEventoController::class)->parameters(['agenda-eventos' => 'agenda_evento']);
+        Route::post('/agenda-eventos/{agenda_evento}/restore', [AgendaEventoController::class, 'restore']);
+        Route::get('/dashboard-juridico/metrics', [DashboardController::class, 'legalMetrics']);
+        Route::get('/escritorios/{escritorio}', [EscritorioController::class, 'show']);
+        Route::put('/escritorios/{escritorio}', [EscritorioController::class, 'update']);
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::patch('/notifications/{notification}/read', [NotificationController::class, 'read']);
+        Route::patch('/notifications/read-all', [NotificationController::class, 'readAll']);
+        Route::get('/reports/financeiro/export', [RelatorioController::class, 'financeiro']);
+        Route::get('/reports/{tipo}/export', [RelatorioController::class, 'export']);
 
         // Perfis e Permissões
         Route::apiResource('roles', RoleController::class);

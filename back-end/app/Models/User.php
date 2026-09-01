@@ -1,11 +1,10 @@
 <?php
 
 namespace App\Models;
-use App\Models\Permission;
+
 use App\Notifications\ResetPasswordNotification;
-use App\Models\Role;
-use App\Models\ActivityLog;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,8 +20,8 @@ class User extends Authenticatable
     use HasFactory;
     use HasProfilePhoto;
     use Notifiable;
-    use TwoFactorAuthenticatable;
     use SoftDeletes;
+    use TwoFactorAuthenticatable;
 
     protected $fillable = [
         'name',
@@ -33,6 +32,7 @@ class User extends Authenticatable
         'status',
         'last_login_at',
         'last_login_ip',
+        'escritorio_id',
     ];
 
     protected $hidden = [
@@ -66,6 +66,26 @@ class User extends Authenticatable
         return $this->hasMany(ActivityLog::class);
     }
 
+    public function escritorio(): BelongsTo
+    {
+        return $this->belongsTo(Escritorio::class);
+    }
+
+    public function responsabilidadesProcesso(): HasMany
+    {
+        return $this->hasMany(ProcessoResponsavel::class, 'user_id');
+    }
+
+    public function tarefasResponsaveis(): HasMany
+    {
+        return $this->hasMany(Tarefa::class, 'responsavel_id');
+    }
+
+    public function eventosAgendaResponsaveis(): HasMany
+    {
+        return $this->hasMany(AgendaEvento::class, 'responsavel_id');
+    }
+
     public function hasRole(string|array $roles): bool
     {
         if (is_string($roles)) {
@@ -94,7 +114,6 @@ class User extends Authenticatable
         return $this->roles->flatMap->permissions->pluck('name')->unique()->values()->toArray();
     }
 
-    
     public function sendPasswordResetNotification($token): void
     {
         $this->notify(new ResetPasswordNotification($token));
